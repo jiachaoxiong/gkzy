@@ -2,7 +2,7 @@
   <Layout>
     <h3>👋 欢迎, {{ userStore.user?.nickname || userStore.user?.username }}</h3>
     <el-row :gutter="16" class="dashboard-row">
-      <el-col :span="8" class="dashboard-col">
+      <el-col :xs="24" :md="8" class="dashboard-col">
         <el-card class="dashboard-card">
           <template #header>📋 个人信息</template>
           <el-form :model="profile" label-width="80px">
@@ -13,7 +13,7 @@
           </el-form>
         </el-card>
       </el-col>
-      <el-col :span="8" class="dashboard-col">
+      <el-col :xs="24" :md="8" class="dashboard-col">
         <el-card class="dashboard-card">
           <template #header>🚀 快捷入口</template>
           <div class="quick-links">
@@ -23,7 +23,7 @@
           </div>
         </el-card>
       </el-col>
-      <el-col :span="8" class="dashboard-col">
+      <el-col :xs="24" :md="8" class="dashboard-col">
         <el-card class="dashboard-card">
           <template #header>📊 方案统计</template>
           <el-statistic title="志愿方案数" :value="planCount" />

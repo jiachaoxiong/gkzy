@@ -67,7 +67,7 @@
     </el-card>
 
     <!-- 专业选择对话框 -->
-    <el-dialog v-model="majorDialogVisible" :title="`选择专业 — ${currentCollege?.collegeName || ''}`" width="560px" :close-on-click-modal="false">
+    <el-dialog v-model="majorDialogVisible" :title="`选择专业 — ${currentCollege?.collegeName || ''}`" :width="isMobile ? '95%' : '560px'" :close-on-click-modal="false">
       <div v-if="majors.length === 0" style="text-align:center;color:#909399;padding:20px;">该院校暂无专业数据</div>
       <div v-else>
         <p style="color:#909399;margin-bottom:12px;">请选择感兴趣的专业（最多6个），已选 <strong>{{ selectedMajorIds.length }}</strong>/6</p>
@@ -88,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Layout from './Layout.vue'
 import { recommendApi } from '@/api/recommend'
@@ -97,6 +97,10 @@ import { collegeApi } from '@/api/college'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
+const isMobile = ref(false)
+onMounted(() => { isMobile.value = window.innerWidth < 768; window.addEventListener('resize', () => isMobile.value = window.innerWidth < 768) })
+onUnmounted(() => window.removeEventListener('resize', () => {}))
+
 const loading = ref(false)
 const results = ref<any[]>([])
 const strategyTab = ref('冲')

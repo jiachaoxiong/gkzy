@@ -101,7 +101,10 @@ async function handleRegister() {
 </script>
 
 <style scoped>
-.login-page { display: flex; align-items: center; justify-content: center; height: 100vh; background: #f0f2f5; }
-.login-card { width: 420px; }
-.login-card h2 { text-align: center; margin-bottom: 20px; }
+.login-page { display: flex; align-items: center; justify-content: center; height: 100vh; background: #f0f2f5; padding: 16px; }
+.login-card { width: 100%; max-width: 420px; }
+.login-card h2 { text-align: center; margin-bottom: 20px; font-size: 20px; }
+@media (max-width: 480px) {
+  .login-card h2 { font-size: 17px; }
+}
 </style>

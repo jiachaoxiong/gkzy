@@ -3,7 +3,7 @@
     <el-button @click="$router.back()">← 返回</el-button>
     <el-card style="margin-top:16px" v-loading="loading">
       <template #header><h3>{{ college?.name }}</h3></template>
-      <el-descriptions :column="2" border>
+      <el-descriptions :column="isMobile ? 1 : 2" border>
         <el-descriptions-item label="院校代码">{{ college?.code }}</el-descriptions-item>
         <el-descriptions-item label="类型">{{ college?.type }}</el-descriptions-item>
         <el-descriptions-item label="所在地">{{ college?.province }} {{ college?.city }}</el-descriptions-item>
@@ -47,12 +47,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import Layout from './Layout.vue'
 import { collegeApi } from '@/api/college'
 
 const route = useRoute()
+const isMobile = ref(false)
+onMounted(() => { isMobile.value = window.innerWidth < 768; window.addEventListener('resize', () => isMobile.value = window.innerWidth < 768) })
+onUnmounted(() => window.removeEventListener('resize', () => {}))
+
 const college = ref<any>(null)
 const majors = ref([])
 const scores = ref([])

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.gkzy.auth.dto.LoginDTO;
 import com.gkzy.auth.dto.LoginVO;
 import com.gkzy.auth.dto.RegisterDTO;
+import com.gkzy.auth.dto.UpdateProfileDTO;
 import com.gkzy.auth.entity.User;
 import com.gkzy.auth.mapper.UserMapper;
 import com.gkzy.auth.util.JwtUtil;
@@ -62,9 +63,11 @@ public class AuthService {
         return userMapper.selectById(userId);
     }
 
-    public void updateProfile(Long userId, User user) {
-        user.setId(userId);
-        user.setPassword(null); // 不允许直接修改密码
+    public void updateProfile(Long userId, UpdateProfileDTO dto) {
+        User user = userMapper.selectById(userId);
+        if (dto.getNickname() != null) user.setNickname(dto.getNickname());
+        if (dto.getPhone() != null) user.setPhone(dto.getPhone());
+        if (dto.getSubjectType() != null) user.setSubjectType(dto.getSubjectType());
         userMapper.updateById(user);
     }
 }

@@ -2,21 +2,23 @@
   <Layout>
     <el-card>
       <template #header>
-        <el-row :gutter="12">
-          <el-col :span="5">
-            <el-select v-model="provinceFilter" placeholder="选择省份" clearable filterable @change="onProvinceChange">
+        <el-row :gutter="8">
+          <el-col :xs="12" :md="5" style="margin-bottom:8px;">
+            <el-select v-model="provinceFilter" placeholder="省份" clearable filterable @change="onProvinceChange" style="width:100%">
               <el-option v-for="p in provinces" :key="p" :label="p" :value="p" />
             </el-select>
           </el-col>
-          <el-col :span="5"><el-input v-model="keyword" placeholder="搜索院校名称" clearable @clear="fetchData" @keyup.enter="fetchData" /></el-col>
-          <el-col :span="4">
-            <el-select v-model="levelFilter" placeholder="办学层次" clearable @change="fetchData">
+          <el-col :xs="12" :md="5" style="margin-bottom:8px;">
+            <el-input v-model="keyword" placeholder="搜索院校" clearable @clear="fetchData" @keyup.enter="fetchData" />
+          </el-col>
+          <el-col :xs="12" :md="4" style="margin-bottom:8px;">
+            <el-select v-model="levelFilter" placeholder="层次" clearable @change="fetchData" style="width:100%">
               <el-option label="985" value="985" /><el-option label="211" value="211" />
               <el-option label="双一流" value="双一流" /><el-option label="普通" value="普通" />
             </el-select>
           </el-col>
-          <el-col :span="3">
-            <el-button type="primary" @click="fetchData">搜索</el-button>
+          <el-col :xs="12" :md="3">
+            <el-button type="primary" @click="fetchData" style="width:100%">搜索</el-button>
           </el-col>
         </el-row>
       </template>

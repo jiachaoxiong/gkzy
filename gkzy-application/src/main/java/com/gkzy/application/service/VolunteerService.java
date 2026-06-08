@@ -41,6 +41,15 @@ public class VolunteerService {
         return planMapper.selectById(id);
     }
 
+    /** 获取方案（带归属校验），非本人方案抛出异常 */
+    public VolunteerPlan getPlanWithAuth(Long id, Long userId) {
+        VolunteerPlan plan = planMapper.selectById(id);
+        if (plan == null || !plan.getUserId().equals(userId)) {
+            throw new BusinessException(ResultCode.FORBIDDEN);
+        }
+        return plan;
+    }
+
     public VolunteerPlan createPlan(VolunteerPlan plan) {
         plan.setStatus("草稿");
         planMapper.insert(plan);

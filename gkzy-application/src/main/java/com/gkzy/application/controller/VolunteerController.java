@@ -31,30 +31,39 @@ public class VolunteerController {
     }
 
     @GetMapping("/{id}")
-    public R<VolunteerPlan> detail(@PathVariable Long id) {
-        return R.ok(volunteerService.getPlan(id));
+    public R<VolunteerPlan> detail(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return R.ok(volunteerService.getPlanWithAuth(id, userId));
     }
 
     @PutMapping("/{id}")
-    public R<Void> update(@PathVariable Long id, @RequestBody VolunteerPlan plan) {
+    public R<Void> update(@PathVariable Long id, @RequestBody VolunteerPlan plan, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        volunteerService.getPlanWithAuth(id, userId); // 校验归属
         plan.setId(id);
         volunteerService.updatePlan(plan);
         return R.ok();
     }
 
     @DeleteMapping("/{id}")
-    public R<Void> delete(@PathVariable Long id) {
+    public R<Void> delete(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        volunteerService.getPlanWithAuth(id, userId); // 校验归属
         volunteerService.deletePlan(id);
         return R.ok();
     }
 
     @GetMapping("/{id}/details")
-    public R<List<VolunteerDetailVO>> details(@PathVariable Long id) {
+    public R<List<VolunteerDetailVO>> details(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        volunteerService.getPlanWithAuth(id, userId); // 校验归属
         return R.ok(volunteerService.getDetails(id));
     }
 
     @PostMapping("/{id}/details")
-    public R<Void> addDetail(@PathVariable Long id, @RequestBody VolunteerDetail detail) {
+    public R<Void> addDetail(@PathVariable Long id, @RequestBody VolunteerDetail detail, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        volunteerService.getPlanWithAuth(id, userId); // 校验归属
         volunteerService.addDetail(id, detail);
         return R.ok();
     }
@@ -72,7 +81,9 @@ public class VolunteerController {
     }
 
     @PostMapping("/{id}/submit")
-    public R<Void> submit(@PathVariable Long id) {
+    public R<Void> submit(@PathVariable Long id, Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        volunteerService.getPlanWithAuth(id, userId); // 校验归属
         volunteerService.submitPlan(id);
         return R.ok();
     }

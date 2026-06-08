@@ -1,0 +1,111 @@
+---
+# Secret — 敏感配置
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gkzy-secret
+  namespace: ns-gk5k0f3z
+type: Opaque
+stringData:
+  DB_USERNAME: "root"
+  DB_PASSWORD: "2qq52b8g"
+  JWT_SECRET: "gkzy-prod-k8s-secret-2026-gaokao-zhiyuan-make-it-very-long-64-chars!"
+---
+# ConfigMap — 非敏感配置
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gkzy-config
+  namespace: ns-gk5k0f3z
+data:
+  DB_HOST: "gkzy-mysql.ns-gk5k0f3z.svc"
+  DB_PORT: "3306"
+---
+# 后端 Deployment（含前端静态文件）
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gkzy
+  namespace: ns-gk5k0f3z
+  labels:
+    app: gkzy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gkzy
+  template:
+    metadata:
+      labels:
+        app: gkzy
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/jiachaoxiong/gkzy-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - secretRef:
+                name: gkzy-secret
+            - configMapRef:
+                name: gkzy-config
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1024Mi
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+      restartPolicy: Always
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: gkzy
+  namespace: ns-gk5k0f3z
+  labels:
+    app: gkzy
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: gkzy
+---
+# Ingress — 公网入口（Sealos 自动分配 *.sealoshzh.site 域名）
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gkzy
+  namespace: ns-gk5k0f3z
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gkzy
+                port:
+                  number: 8080

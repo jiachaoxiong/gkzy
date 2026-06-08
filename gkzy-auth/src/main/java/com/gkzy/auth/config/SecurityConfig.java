@@ -31,10 +31,16 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // 公开的 API 端点
                 .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login").permitAll()
                 .requestMatchers("/api/v1/colleges/**", "/api/v1/majors/**", "/api/v1/provinces").permitAll()
+                // 其他 API 需要认证
+                .requestMatchers("/api/**").authenticated()
+                // 文档 & 健康检查
                 .requestMatchers("/doc.html", "/v3/api-docs/**", "/webjars/**").permitAll()
-                .anyRequest().authenticated()
+                .requestMatchers("/actuator/health").permitAll()
+                // 前端静态文件 & SPA 路由（由 Vue Router 守卫自行处理认证）
+                .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

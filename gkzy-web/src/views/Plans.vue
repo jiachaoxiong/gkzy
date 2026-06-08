@@ -8,7 +8,7 @@
       <el-table-column prop="status" label="状态" width="80">
         <template #default="{ row }"><el-tag :type="row.status==='已提交'?'success':''">{{ row.status }}</el-tag></template>
       </el-table-column>
-      <el-table-column label="操作" width="240">
+      <el-table-column label="操作" width="150">
         <template #default="{ row }">
           <el-button size="small" @click="$router.push(`/plans/${row.id}/edit`)">编辑</el-button>
           <el-button size="small" type="danger" @click="handleDelete(row.id)">删除</el-button>

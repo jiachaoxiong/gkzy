@@ -1,5 +1,6 @@
 package com.gkzy.auth.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.gkzy.common.BaseEntity;
 import lombok.Data;
@@ -16,5 +17,7 @@ public class User extends BaseEntity {
     private String province;
     private String subjectType;
     private Integer score;
+
+    @TableField("`rank`")
     private Integer rank;
 }

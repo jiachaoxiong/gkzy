@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gkzy-config
+  namespace: ns-gk5k0f3z
+data:
+  DB_HOST: "gkzy-mysql.ns-gk5k0f3z.svc"
+  DB_PORT: "3306"
+  ALLOWED_ORIGINS: "https://gkzy.sealos.run,https://*.sealos.run,https://*.ns-gk5k0f3z.svc"

@@ -3,6 +3,7 @@ package com.gkzy.auth.controller;
 import com.gkzy.auth.dto.LoginDTO;
 import com.gkzy.auth.dto.LoginVO;
 import com.gkzy.auth.dto.RegisterDTO;
+import com.gkzy.auth.dto.UpdateProfileDTO;
 import com.gkzy.auth.entity.User;
 import com.gkzy.auth.service.AuthService;
 import com.gkzy.common.R;
@@ -35,9 +36,9 @@ public class AuthController {
     }
 
     @PutMapping("/me")
-    public R<Void> updateProfile(@RequestBody User user, Authentication auth) {
+    public R<Void> updateProfile(@Valid @RequestBody UpdateProfileDTO dto, Authentication auth) {
         Long userId = (Long) auth.getPrincipal();
-        authService.updateProfile(userId, user);
+        authService.updateProfile(userId, dto);
         return R.ok();
     }
 }
