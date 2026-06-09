@@ -91,14 +91,24 @@
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Layout from './Layout.vue'
+import { useUserStore } from '@/stores/user'
 import { recommendApi } from '@/api/recommend'
 import { planApi } from '@/api/plan'
 import { collegeApi } from '@/api/college'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
+const userStore = useUserStore()
 const isMobile = ref(false)
-onMounted(() => { isMobile.value = window.innerWidth < 768; window.addEventListener('resize', () => isMobile.value = window.innerWidth < 768) })
+onMounted(() => {
+  isMobile.value = window.innerWidth < 768
+  window.addEventListener('resize', () => isMobile.value = window.innerWidth < 768)
+  // 自动加载用户已保存的分数信息
+  const user = userStore.user
+  if (user?.score) form.score = user.score
+  if (user?.rank) form.rank = user.rank
+  if (user?.subjectType) form.subjectType = user.subjectType
+})
 onUnmounted(() => window.removeEventListener('resize', () => {}))
 
 const loading = ref(false)
@@ -184,8 +194,14 @@ function probColor(strategy: string) {
 async function analyze() {
   if (!form.score || !form.rank) { ElMessage.warning('请填写分数和位次'); return }
   loading.value = true
-  try { results.value = await recommendApi.analyze(form) as any[] }
-  finally { loading.value = false }
+  try {
+    results.value = await recommendApi.analyze(form) as any[]
+    if (!results.value || results.value.length === 0) {
+      ElMessage.info('未找到匹配的院校，请调整条件后重试')
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.message || '分析失败，请稍后重试')
+  } finally { loading.value = false }
 }
 
 async function addToPlan(row: any) {

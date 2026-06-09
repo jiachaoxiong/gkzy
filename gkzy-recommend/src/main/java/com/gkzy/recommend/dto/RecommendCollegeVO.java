@@ -17,4 +17,10 @@ public class RecommendCollegeVO {
     private String level;    // 层次: 985/211/双一流/普通
     private String code;     // 院校代码
     private String province; // 省份
+
+    /**
+     * 内部临时字段（不序列化到JSON）：偏差率，用于策略分类排序
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private transient double diffTemp;
 }

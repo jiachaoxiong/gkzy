@@ -85,18 +85,25 @@ public class RecommendService {
         int studentRank = dto.getRank();
         Integer convertedRank = scoreToRank(dto.getScore(), dto.getSubjectType());
         if (convertedRank != null) {
-            // 使用一分一段表换算的位次（比用户手动输入更准确）
             studentRank = convertedRank;
         }
 
         // ====== 步骤1: 查询近3年录取数据 ======
-        // 兼容2025年山西高考改革：旧批次名(本科一批A) + 新批次名(本科批) 都要查
+        // 兼容2025年山西高考改革："本科批"映射到全部旧批次
         int currentYear = 2026;
         List<String> batches = new ArrayList<>();
-        batches.add(dto.getBatch());
-        // 如果选了旧批次，也包含"本科批"（2025年新高考合并批次后的名称）
-        if (dto.getBatch().startsWith("本科") && !"本科批".equals(dto.getBatch())) {
-            batches.add("本科批");
+        if ("本科批".equals(dto.getBatch())) {
+            // 山西2025新高考合并批次 → 查询所有旧批次数据
+            batches.add("本科一批A");
+            batches.add("本科一批B");
+            batches.add("本科二批A");
+            batches.add("本科二批B");
+        } else {
+            batches.add(dto.getBatch());
+            // 如果选了旧批次，也兼容"本科批"（2025年数据可能有新批次名）
+            if (dto.getBatch().startsWith("本科")) {
+                batches.add("本科批");
+            }
         }
 
         List<AdmissionScore> scores = scoreMapper.selectList(
@@ -105,6 +112,8 @@ public class RecommendService {
                         .eq(AdmissionScore::getSubjectType, dto.getSubjectType())
                         .isNull(AdmissionScore::getMajorId) // 只取院校投档线
                         .ge(AdmissionScore::getYear, currentYear - 3));
+
+        if (scores.isEmpty()) return Collections.emptyList();
 
         // ====== 步骤2: 按院校聚合，计算加权平均参考位次 ======
         Map<Long, List<AdmissionScore>> collegeScoreMap = scores.stream()
@@ -126,36 +135,8 @@ public class RecommendService {
             }
             int refRank = (int) (weightedSum / weightTotal);
 
-            // ====== 步骤3: 计算偏差率 ======
-            // diff > 0 → 考生位次优于参考位次（录取希望大）
-            // diff < 0 → 考生位次劣于参考位次（录取希望小）
+            // 计算偏差率：diff > 0 → 考生位次优于参考（录取希望大）
             double diff = ((double) refRank - studentRank) / refRank;
-
-            // ====== 步骤4: 平滑Sigmoid概率公式 ======
-            // prob = 100 / (1 + e^(-k * (diff + offset)))
-            // k=6(陡峭度), offset=0.05(使diff=0时概率≈57%)
-            double sigmoid = 100.0 / (1.0 + Math.exp(-6.0 * (diff + 0.05)));
-            BigDecimal probability = BigDecimal.valueOf(sigmoid)
-                    .setScale(0, RoundingMode.HALF_UP);
-
-            // ====== 步骤5: 策略分类 ======
-            // 冲: 考生位次明显差于参考 → diff < -0.10
-            // 稳: 考生位次接近参考     → -0.10 ≤ diff ≤ 0.10
-            // 保: 考生位次明显优于参考 → diff > 0.10
-            String strategy;
-            if (diff < -0.10) {
-                strategy = "冲";
-                if (probability.compareTo(BigDecimal.valueOf(5)) < 0) {
-                    probability = BigDecimal.valueOf(5.0); // 最低不低于5%
-                }
-            } else if (diff <= 0.10) {
-                strategy = "稳";
-            } else {
-                strategy = "保";
-                if (probability.compareTo(BigDecimal.valueOf(99)) > 0) {
-                    probability = BigDecimal.valueOf(99.0); // 最高不超过99%
-                }
-            }
 
             College college = collegeMapper.selectById(collegeId);
             if (college == null) continue;
@@ -167,8 +148,7 @@ public class RecommendService {
             vo.setCity(college.getCity());
             vo.setRefMinScore(scoreList.get(0).getMinScore());
             vo.setRefMinRank(refRank);
-            vo.setAdmitProbability(probability);
-            vo.setStrategy(strategy);
+            vo.setDiffTemp(diff); // 暂存diff，后续分类用
             vo.setBatch(scoreList.get(0).getBatch());
             vo.setLevel(college.getLevel());
             vo.setCode(college.getCode());
@@ -176,7 +156,53 @@ public class RecommendService {
             results.add(vo);
         }
 
-        // ====== 步骤6: 排序 ======
+        // ====== 步骤3: 按diff排序，百分位策略分类 ======
+        // 前35%→"冲"，中间40%→"稳"，后25%→"保"
+        results.sort(Comparator.comparingDouble(RecommendCollegeVO::getDiffTemp));
+        int n = results.size();
+        int chongEnd = (int) Math.round(n * 0.35);   // 前35%
+        int wenEnd = (int) Math.round(n * 0.75);      // 前75%（35%+40%）
+
+        double minDiff = results.get(0).getDiffTemp();
+        double maxDiff = results.get(n - 1).getDiffTemp();
+        double chongMaxDiff = chongEnd > 0 ? results.get(chongEnd - 1).getDiffTemp() : minDiff;
+        double wenMinDiff = chongEnd < n ? results.get(chongEnd).getDiffTemp() : chongMaxDiff;
+        double wenMaxDiff = wenEnd > chongEnd ? results.get(wenEnd - 1).getDiffTemp() : wenMinDiff;
+        double baoMinDiff = wenEnd < n ? results.get(wenEnd).getDiffTemp() : wenMaxDiff;
+        // 添加小量避免除零
+        double epsilon = 0.0001;
+
+        for (int i = 0; i < n; i++) {
+            RecommendCollegeVO vo = results.get(i);
+            double diff = vo.getDiffTemp();
+            BigDecimal probability;
+
+            if (i < chongEnd) {
+                // 冲：5%~40%，线性插值
+                vo.setStrategy("冲");
+                double range = chongMaxDiff - minDiff + epsilon;
+                double ratio = (diff - minDiff) / range;
+                int prob = (int) Math.round(5 + 35 * ratio);
+                probability = BigDecimal.valueOf(Math.max(5, Math.min(40, prob)));
+            } else if (i < wenEnd) {
+                // 稳：40%~70%
+                vo.setStrategy("稳");
+                double range = wenMaxDiff - wenMinDiff + epsilon;
+                double ratio = (diff - wenMinDiff) / range;
+                int prob = (int) Math.round(40 + 30 * ratio);
+                probability = BigDecimal.valueOf(Math.max(40, Math.min(70, prob)));
+            } else {
+                // 保：70%~99%
+                vo.setStrategy("保");
+                double range = maxDiff - baoMinDiff + epsilon;
+                double ratio = (diff - baoMinDiff) / range;
+                int prob = (int) Math.round(70 + 29 * ratio);
+                probability = BigDecimal.valueOf(Math.max(70, Math.min(99, prob)));
+            }
+            vo.setAdmitProbability(probability);
+        }
+
+        // ====== 步骤4: 最终排序 ======
         // 冲→稳→保 → 层次(985→211→双一流→普通) → 院校代码升序
         Map<String, Integer> strategyOrder = Map.of("冲", 0, "稳", 1, "保", 2);
         Map<String, Integer> levelOrder = Map.of("985", 0, "211", 1, "双一流", 2, "普通", 3);

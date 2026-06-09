@@ -22,11 +22,13 @@ request.interceptors.response.use(
     return Promise.reject(new Error(message))
   },
   error => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
       localStorage.removeItem('token')
+      ElMessage.error('登录已过期，请重新登录')
       window.location.href = '/login'
+      return Promise.reject(error)
     }
-    ElMessage.error(error.message)
+    ElMessage.error(error.response?.data?.message || error.message || '请求失败')
     return Promise.reject(error)
   }
 )
